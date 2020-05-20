@@ -10,6 +10,8 @@ These are the things it's expecting
     │   │   └── metadata.json
     ├── components
     │   └── component-name.html
+    ├── static
+    │   └── index.css
     ├── index.css
     └── templates
         ├── article-template.mustache

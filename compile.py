@@ -3,13 +3,14 @@ import chevron, os, io, json, shutil
 ARTICLE_TEMPLATE_FILE = "templates/article-template.mustache"
 ARTICLE_ENTRIES_TEMPLATE_FILE = "templates/article-entries.mustache"
 INDEX_TEMPLATE_FILE = "templates/index.mustache"
-STYLESHEET = "index.css"
 METADATA_FILE_NAME = "metadata.json"
 BODY_FILE_NAME = "body.html"
 INDEX_HTML_FILE_NAME = "index.html"
 COMPONENTS_DIR = "components"
 OUTPUT_DIR = "public"
 ARTICLES_DIR = "articles"
+STATIC_DIR = "static"
+
 
 def read_file(path):
     """Read a file from the specified path and return the data
@@ -68,7 +69,7 @@ class BlogContentPublisher:
         Renders articles from article data gathered in `self.get_articles()`
         and components in `self.get_components()`. 
         Renders index.html with article metadata
-        Copies stylesheet over to output directory
+        Copies static files over to output directory
         """
 
         components = self.get_components()
@@ -92,8 +93,12 @@ class BlogContentPublisher:
         #Write index.html
         index = chevron.render(read_file(INDEX_TEMPLATE_FILE), {"articles": articles, **components})
         write_file(os.path.join(output_dir_path, INDEX_HTML_FILE_NAME), index)
-        #Copy css
-        shutil.copyfile(os.path.join(self.current_path, STYLESHEET), os.path.join(output_dir_path, STYLESHEET))
+
+        #Copy static files
+        static_file_path = os.path.join(self.current_path, STATIC_DIR)
+        for f in os.listdir(static_file_path):
+            print("copying static file: {0}".format(f))
+            shutil.copyfile(os.path.join(static_file_path, f), os.path.join(output_dir_path, f))
     
     def get_components(self):
         """Reads the web page components from html files defined in the components directory
@@ -140,9 +145,26 @@ class BlogContentPublisher:
             all_articles.append(data)
         return all_articles
 
+def serve():
+    import http.server
+    import socketserver
+
+    PORT = 8000
+    DIRECTORY = OUTPUT_DIR
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=DIRECTORY, **kwargs)
+
+
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print("serving at port", PORT)
+        httpd.serve_forever()
+
 
 def main():
     b = BlogContentPublisher(os.getcwd(), COMPONENTS_DIR, ARTICLES_DIR, OUTPUT_DIR)
     b.render_site()
+    #serve()
 
 main()
